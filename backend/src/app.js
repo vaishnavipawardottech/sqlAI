@@ -17,6 +17,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
+// imports
+import apiRouter from './routes/api.js';
+import testRouter from './routes/test.route.js';
+
+// API routes
+app.use('/api', apiRouter);
+app.use('/api', testRouter);
 
 
 
