@@ -1,6 +1,6 @@
 import express from 'express';
-import { generateSchema, askQuestion } from '../controllers/schemaController.js';
-import { generateQuery } from '../controllers/queryController.js';
+import { generateSchema, askQuestion } from '../controllers/schema.controller.js';
+import { generateQuery } from '../controllers/query.controller.js';
 
 const router = express.Router();
 

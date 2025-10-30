@@ -20,14 +20,12 @@ app.use(express.static('public'));
 // imports
 import apiRouter from './routes/api.js';
 import testRouter from './routes/test.route.js';
+import userRouter from './routes/user.route.js';
 
 // API routes
 app.use('/api', apiRouter);
 app.use('/api', testRouter);
-
-
-
-
+app.use('/api', userRouter);
 
 
 export { app };
