@@ -352,6 +352,10 @@ function buildSystemInstruction(context, intent) {
         case 'schema':
             systemPrompt += `TASK: Generate CREATE TABLE statement(s) for MySQL.
 INSTRUCTIONS:
+- Start with a friendly conversational response (1-2 sentences) about what you're creating
+- Example: "Here's your database schema for the employee management system:" or "I've created the following tables for your inventory system:"
+- generate the response how chatgpt and claude will genrate sql with some logical and informative text related to this or questions or any guidance that you want to give the user on the business logic given by user
+- Then provide the SQL statements
 - Analyze the business requirement carefully
 - Generate complete, production-ready MySQL table(s)
 - Include PRIMARY KEY, FOREIGN KEY constraints
@@ -359,17 +363,32 @@ INSTRUCTIONS:
 - Add NOT NULL, UNIQUE, DEFAULT constraints where appropriate
 - Add indexes for performance (INDEX on foreign keys)
 - If multiple tables are needed, generate all of them
-- Return ONLY the SQL statements, no markdown, no explanations`;
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+[Your friendly intro text here]
+
+SQL:
+[SQL statements here]`;
             break;
 
         case 'query':
             systemPrompt += `TASK: Convert natural language to a MySQL SELECT query.
 INSTRUCTIONS:
+- Start with a friendly conversational response (1-2 sentences) about what you're creating
+- generate response how chatgpt and claude will genrate sql with some logical and informative text related to query or questions or any guidance that you want to give the user on the query
+- Start with a brief conversational response (1 sentence) about what the query does
+- Example: "Here's a query to get the average performance score for each employee:" or "This query will show you the top 10 products:"
+- Then provide the SQL query
 - Use ONLY the existing tables from the current schema
 - Write optimized, production-ready SQL
 - Use proper JOINs if multiple tables needed
 - Add WHERE, GROUP BY, ORDER BY, LIMIT as appropriate
-- Return ONLY the SQL query, no markdown, no explanations`;
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+[Your friendly intro text here]
+
+SQL:
+[SQL query here]`;
             break;
 
         case 'optimize_query':
@@ -379,11 +398,21 @@ Previous Query: ${lastQuery.generated_sql}
 Previous Request: ${lastQuery.natural_language}
 
 INSTRUCTIONS:
+- Start with a friendly conversational response (1-2 sentences) about what you're creating
+- generate response how chatgpt and claude will genrate sql with some logical and informative text related to optimization or questions or any guidance that you want to give the user on the optimization
+- Start with explanation of what you optimized (1-2 sentences)
+- Example: "I've optimized your query by adding proper indexes and using a more efficient JOIN:" or "Here's the improved version with better performance:"
+- Then provide the optimized SQL
 - Improve the query based on user's request
 - Add indexes suggestions if needed (as SQL comments)
 - Optimize JOINs, subqueries, or add CTEs if beneficial
 - Maintain the same result but improve performance
-- Return ONLY the optimized SQL query, no markdown, no explanations`;
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+[Your explanation of optimization]
+
+SQL:
+[Optimized SQL query here]`;
             break;
 
         case 'optimize_schema':
@@ -392,11 +421,21 @@ INSTRUCTIONS:
 Current Schema: ${lastSchema.sql_statement}
 
 INSTRUCTIONS:
+- Start with a friendly conversational response (1-2 sentences) about what you're creating
+- generate response how chatgpt and claude will genrate sql with some logical and informative text related to optimization or questions or any guidance that you want to give the user on the optimization
+- Start with explanation of improvements (1-2 sentences)
+- Example: "I've improved your schema by adding missing indexes and constraints:" or "Here's the optimized version with better normalization:"
+- Then provide the improved SQL
 - Improve the schema based on user's request
 - Add missing indexes, constraints, or relationships
 - Suggest better data types if applicable
 - Add normalization if needed
-- Return ONLY the improved SQL statements, no markdown, no explanations`;
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+[Your explanation of improvements]
+
+SQL:
+[Improved SQL statements here]`;
             break;
 
         case 'conversation':
@@ -405,7 +444,7 @@ INSTRUCTIONS:
 - Be conversational, friendly, and helpful
 - If user is planning to build something, ask clarifying questions
 - If discussing database design, provide expert advice
-- Keep responses concise (2-3 paragraphs max)
+- Keep responses concise (4-5 paragraphs max)
 - Don't generate SQL unless explicitly asked`;
             break;
     }
@@ -414,10 +453,24 @@ INSTRUCTIONS:
 }
 
 // Convert database messages to Gemini chat history format
+// function buildChatHistory(messages) {
+//     return messages.map(msg => {
+//         return {
+//             role: msg.role === 'user' ? 'user' : 'model',
+//             parts: [{ text: msg.content }]
+//         };
+//     });
+// }
+
+
 function buildChatHistory(messages) {
     return messages.map(msg => {
+        let role = 'user';
+        if (msg.role === 'assistant') role = 'model';
+        else if (msg.role === 'system') role = 'system';
+
         return {
-            role: msg.role === 'user' ? 'user' : 'model',
+            role,
             parts: [{ text: msg.content }]
         };
     });

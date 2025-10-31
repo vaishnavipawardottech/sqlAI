@@ -488,6 +488,62 @@ import {
 } from '../utils/promptBuilder.js';
 
 // ==========================================
+// SQL FORMATTING HELPER
+// ==========================================
+
+// Parse AI response to separate conversational text from SQL
+function parseAiResponse(aiResponse) {
+    if (!aiResponse || aiResponse.trim() === '') return null;
+    
+    // Check if response contains SQL marker
+    const sqlMarkerIndex = aiResponse.indexOf('SQL:');
+    
+    if (sqlMarkerIndex === -1) {
+        // No SQL marker, entire response is conversational text
+        return {
+            text: aiResponse.trim(),
+            sql: null,
+            hasSql: false
+        };
+    }
+    
+    // Split text and SQL parts
+    const textPart = aiResponse.substring(0, sqlMarkerIndex).trim();
+    const sqlPart = aiResponse.substring(sqlMarkerIndex + 4).trim(); // Skip "SQL:"
+    
+    return {
+        text: textPart,
+        sql: sqlPart,
+        hasSql: true
+    };
+}
+
+// Format SQL for clean JSON response (remove newlines and extra spaces)
+function formatSqlForJson(sql) {
+    if (!sql || sql.trim() === '') return null;
+    
+    // Split by semicolon to separate multiple statements
+    const statements = sql
+        .split(';')
+        .map(stmt => {
+            // Remove all newlines and multiple spaces
+            return stmt
+                .replace(/\n/g, ' ')           // Replace newlines with space
+                .replace(/\s+/g, ' ')          // Replace multiple spaces with single space
+                .trim();                        // Remove leading/trailing spaces
+        })
+        .filter(stmt => stmt.length > 0);
+    
+    // If single statement, return as string
+    // If multiple statements, return as array
+    if (statements.length === 1) {
+        return statements[0];
+    }
+    
+    return statements;
+}
+
+// ==========================================
 // CHAT SESSION ENDPOINTS
 // ==========================================
 
@@ -699,67 +755,84 @@ const sendMessage = asyncHandler(async (req, res) => {
         // Save user message
         await chatManager.addMessage(sessionId, 'user', message);
         
+        // Parse AI response to separate text and SQL
+        const parsed = parseAiResponse(aiResponse);
+        
         // Prepare response data
         let responseData = {
             success: true,
             sessionId: sessionId,
             intent: intent,
-            response: aiResponse
+            message: parsed.text || aiResponse, // Conversational text
+            hasSQL: parsed.hasSql
         };
         
         // Process based on intent
         switch (intent) {
             case 'schema':
             case 'optimize_schema':
-                if (aiResponse && aiResponse.length > 10) {
-                    const tableNames = extractAllTableNames(aiResponse);
-                    const primaryTable = tableNames[0] || extractTableName(aiResponse);
+                if (parsed.hasSql && parsed.sql && parsed.sql.length > 10) {
+                    const tableNames = extractAllTableNames(parsed.sql);
+                    const primaryTable = tableNames[0] || extractTableName(parsed.sql);
                     
-                    await chatManager.addSchema(sessionId, primaryTable, aiResponse, message);
+                    // Format SQL for clean storage and response
+                    const cleanSql = formatSqlForJson(parsed.sql);
+                    
+                    // Store clean SQL in database (as JSON string if array)
+                    const sqlToStore = Array.isArray(cleanSql) ? JSON.stringify(cleanSql) : cleanSql;
+                    await chatManager.addSchema(sessionId, primaryTable, sqlToStore, message);
                     
                     responseData.type = 'schema';
-                    responseData.sql = aiResponse;
+                    responseData.sql = cleanSql; // Clean SQL array or string (no \n)
                     responseData.tableName = primaryTable;
                     responseData.allTables = tableNames;
                     
                     console.log(`✅ Schema saved: ${primaryTable}`);
                 } else {
                     responseData.type = 'error';
-                    responseData.message = 'Could not generate schema. Please provide more details.';
+                    responseData.message = parsed.text || 'Could not generate schema. Please provide more details.';
+                    responseData.hasSQL = false;
                 }
                 break;
                 
             case 'query':
             case 'optimize_query':
-                if (aiResponse && aiResponse.length > 5) {
-                    if (!aiResponse.endsWith(';')) {
-                        aiResponse += ';';
+                if (parsed.hasSql && parsed.sql && parsed.sql.length > 5) {
+                    let sqlToFormat = parsed.sql;
+                    if (!sqlToFormat.endsWith(';')) {
+                        sqlToFormat += ';';
                     }
                     
-                    await chatManager.addQuery(sessionId, message, aiResponse);
+                    // Format SQL for clean storage and response
+                    const cleanSql = formatSqlForJson(sqlToFormat);
+                    
+                    // Store clean SQL in database
+                    const sqlToStore = Array.isArray(cleanSql) ? cleanSql[0] : cleanSql;
+                    await chatManager.addQuery(sessionId, message, sqlToStore);
                     
                     responseData.type = 'query';
-                    responseData.sql = aiResponse;
+                    responseData.sql = cleanSql; // Clean SQL string (no \n)
                     
                     console.log(`✅ Query saved`);
                 } else {
                     responseData.type = 'error';
-                    responseData.message = 'Could not generate query. Please check your request.';
+                    responseData.message = parsed.text || 'Could not generate query. Please check your request.';
+                    responseData.hasSQL = false;
                 }
                 break;
                 
             case 'conversation':
                 responseData.type = 'conversation';
-                responseData.text = aiResponse;
+                responseData.hasSQL = false;
                 console.log(`✅ Conversational response generated`);
                 break;
                 
             default:
                 responseData.type = 'conversation';
-                responseData.text = aiResponse;
+                responseData.hasSQL = false;
         }
         
-        // Save assistant response
+        // Save assistant response (full response with text + SQL)
         await chatManager.addMessage(sessionId, 'assistant', aiResponse);
         
         // Auto-generate title if first message

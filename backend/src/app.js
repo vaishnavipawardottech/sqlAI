@@ -20,14 +20,14 @@ app.use(express.static('public'));
 // imports
 import apiRouter from './routes/api.js';
 import testRouter from './routes/test.route.js';
-import userRouter from './routes/user.route.js';
+// import userRouter from './routes/user.route.js'; // Removed - Single user mode
 // import contextRouter from './routes/context.route.js';
 import chatRouter from './routes/chat.route.js';
 
 // API routes
 app.use('/api', apiRouter);
 app.use('/api', testRouter);
-app.use('/api', userRouter);
+// app.use('/api', userRouter); // Removed - Single user mode
 app.use('/api', chatRouter);
 // app.use('/api', contextRouter);
 
