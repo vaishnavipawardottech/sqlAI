@@ -21,11 +21,13 @@ app.use(express.static('public'));
 import apiRouter from './routes/api.js';
 import testRouter from './routes/test.route.js';
 import userRouter from './routes/user.route.js';
+import contextRouter from './routes/context.route.js';
 
 // API routes
 app.use('/api', apiRouter);
 app.use('/api', testRouter);
 app.use('/api', userRouter);
+app.use('/api', contextRouter);
 
 
 export { app };
