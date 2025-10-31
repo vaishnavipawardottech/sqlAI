@@ -1,5 +1,5 @@
 import express from 'express';
-import { createNewChat, getAllChats, getChatDetails, updateChatTitle, deleteChat, generateSchema, generateQuery, sendMessage } from '../controllers/chatController.js';
+import { createNewChat, getAllChats, getChatDetails, updateChatTitle, deleteChat, sendMessage } from '../controllers/chatController.js';
 import { authenticateToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
@@ -12,7 +12,7 @@ router.delete('/:sessionId', authenticateToken, deleteChat);
 
 router.post('/message', authenticateToken, sendMessage);
 
-router.post('/schema', authenticateToken, generateSchema);
-router.post('/query', authenticateToken, generateQuery);
+// router.post('/schema', authenticateToken, generateSchema);
+// router.post('/query', authenticateToken, generateQuery);
 
 export default router;

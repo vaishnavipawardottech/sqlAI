@@ -196,8 +196,8 @@ class ChatManager {
                  FROM chat_queries 
                  WHERE session_id = ? 
                  ORDER BY created_at DESC 
-                 LIMIT ?`,
-                [sessionId, limit]
+                 LIMIT 5`,
+                [sessionId]
             );
             return queries.reverse(); // Oldest first
         } catch (error) {
@@ -214,8 +214,8 @@ class ChatManager {
                  FROM chat_messages 
                  WHERE session_id = ? 
                  ORDER BY created_at DESC 
-                 LIMIT ?`,
-                [sessionId, limit]
+                 LIMIT 10`,
+                [sessionId]
             );
             return messages.reverse(); // Oldest first
         } catch (error) {
