@@ -5,8 +5,8 @@ import { authenticateToken } from '../middlewares/auth.middleware.js';
 const router = express.Router();
 
 
-router.post('/schema', authenticateToken, generateSchemaWithContext);
-router.post('/query', authenticateToken, generateQueryWithContext);
+router.post('/schemas', authenticateToken, generateSchemaWithContext);
+router.post('/queries', authenticateToken, generateQueryWithContext);
 router.get('/history/:userId', getConversationHistory);
 
 export default router;
